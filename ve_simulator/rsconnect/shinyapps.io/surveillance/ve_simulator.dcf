@@ -1,0 +1,13 @@
+name: ve_simulator
+title: ve_simulator
+username:
+account: surveillance
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5671052
+bundleId: 5587379
+url: https://surveillance.shinyapps.io/ve_simulator/
+when: 1645046295.13429
+lastSyncTime: 1645046295.1343
+asMultiple: FALSE
+asStatic: FALSE

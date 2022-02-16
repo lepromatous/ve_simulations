@@ -143,3 +143,101 @@ mod1.pois <- mod1 <- glm(covid ~ vaccine.status, family="poisson")
 mod1.pois.adj <- poisson.rev(mod1.pois)
 1 - mod1.pois.adj[2,1] ## 71% ve - exactly our crude estimate.  Logistic overestimates. 
 
+
+
+
+
+##################################################
+#### simulate data
+##################################################
+
+makedata <- function(total.covid, total.nocovid, total.vaccine.covid, total.vaccine.nocovid){
+    
+    covid <- c(rep(1, times=total.covid), rep(0, times=total.nocovid))   
+    vaccine.status <- c(rep(1, times=total.vaccine.covid), rep(0, times=total.covid-total.vaccine.covid), rep(1, times=total.vaccine.nocovid), rep(0, times=total.nocovid-total.vaccine.nocovid))
+        
+    df <- data.frame(covid, vaccine.status)
+    
+    prevalence <- round(total.covid / (total.covid+ total.nocovid)*100,2)
+    risk.vax <- total.vaccine.covid / (total.vaccine.nocovid+total.vaccine.covid)
+    risk.unvax <- (total.covid - total.vaccine.covid) / ((total.covid - total.vaccine.covid) + (total.nocovid - total.vaccine.nocovid))
+    rr <- risk.vax / risk.unvax
+    cVE <- round((1- rr) *100,2)
+    
+    # LOGISTIC REGRESSION VE
+    mod.log <- glm(covid ~ vaccine.status, family="binomial")
+    log.ve <- round((1-exp(mod.log$coefficients))*100,2)[2]
+    
+    log.ve.ci <- 1-(exp(confint(mod.log)))[2,]
+    log.ve.ci <- paste0("(", round(log.ve.ci[2]*100,3), " - ",round(log.ve.ci[1]*100,3), ")")
+    log.out <- paste(log.ve, log.ve.ci)
+    
+    
+    ### POISSON VE
+    poisson.rev<-function(a){
+      require(sandwich) || install.packages(sandwich) 
+      cov.m1 <- vcovHC(a, type = "HC0")
+      std.err <- sqrt(diag(cov.m1))
+      r.est <- cbind(Estimate = coef(a), `Robust SE` = std.err, `Pr(>|z|)` = 2 * 
+                       pnorm(abs(coef(a)/std.err), lower.tail = FALSE), LL = coef(a) - 1.96 * 
+                       std.err, UL = coef(a) + 1.96 * std.err)
+      RR.CI<-exp(r.est[,c(1,4,5)])
+      output<-cbind(RR.CI, r.est[,3])
+      colnames(output)<-c("Risk Ratio", "Lower 95% CI", "Upper 95% CI", "P-value")
+      output<-round(output,5)
+      return(output)
+    }
+    
+    mod.pois <- glm(covid ~ vaccine.status, family="poisson")
+    mod.pois <- poisson.rev(mod.pois)[2,]
+    ve.pois <- (1-mod.pois)*100
+    pois.out <- paste(ve.pois[1], paste0("(", ve.pois[3], " - ", ve.pois[2], ")"))
+    
+    mod.nb <- MASS::glm.nb(covid ~ vaccine.status)
+    ve.nb <- round((1-exp(yo$coefficients))*100,2)[2]
+    nb.ci <- round((1-(exp(confint(mod.nb))[2,]))*100,3)
+    nb.out <- paste(ve.nb[1], paste0("(", nb.ci[2], " - ", nb.ci[1], ")"))
+    
+    
+    out <- data.frame(
+      "Prevalence" = prevalence,
+      "Actual VE" = cVE,
+      "Logistic VE" = log.out,
+      "Poisson VE" = pois.out,
+      "Negative Binomial VE" = nb.out
+    )
+    library(gt)
+    
+    out %>%
+      
+      gt::gt() %>%
+      
+      tab_options(
+        table.align = "center"
+      ) %>%
+      
+      cols_align("center", columns = everything()) %>%
+      
+      cols_label(
+        Prevalence = "Prevalence of COVID-19 (%)",
+        Actual.VE = "VE, Actual (%)%",
+        Logistic.VE = "VE, Logistic (%)%",
+        Poisson.VE = "VE, Poisson w/REV (%)%",
+        Negative.Binomial.VE = "VE, Neg Bin (%)"
+      ) -> out.tab
+      
+      
+    return(list(df, out.tab))
+    }
+
+### matches NEJM
+makedata(total.covid=1472, total.nocovid=3420, total.vaccine.covid=167, total.vaccine.nocovid=1072)
+
+
+test <- makedata(total.covid=54, total.nocovid=(2000-54), total.vaccine.covid=12, total.vaccine.nocovid=1000-40)[[1]]
+
+makedata(total.covid=54, total.nocovid=(2000-54), total.vaccine.covid=12, total.vaccine.nocovid=1000-40)[[2]]
+
+
+
+
