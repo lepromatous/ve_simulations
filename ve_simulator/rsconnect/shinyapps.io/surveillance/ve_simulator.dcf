@@ -5,9 +5,9 @@ account: surveillance
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5671052
-bundleId: 5587379
+bundleId: 5590437
 url: https://surveillance.shinyapps.io/ve_simulator/
-when: 1645046295.13429
-lastSyncTime: 1645046295.1343
+when: 1645117078.84373
+lastSyncTime: 1645117078.84376
 asMultiple: FALSE
 asStatic: FALSE
