@@ -2,10 +2,11 @@
 library(shinyjs)
 library(shiny)
 library(gt)
+library(shinythemes)
 source("helpers.R")
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("darkly"),
 
     # Application title
     titlePanel("Simulations for Choosing Statistical Methodologies for VE Studies"),

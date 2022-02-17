@@ -19,8 +19,11 @@ makedata <- function(n.vaccinated.case=314, n.case=1983, n.vaccinated.control = 
  
   ### compute some values
   prevalence <- round(n.case / (n.case+ n.control)*100,2)
-  risk.vax <- n.vaccinated.case / n.case
-  risk.unvax <- n.vaccinated.control/n.control
+
+  prevalence.unexposed <- round(n.unvaccinated.case/n.case*100,2)
+  
+  risk.vax <- n.vaccinated.case / (n.vaccinated.case + n.vaccinated.control)
+  risk.unvax <- n.unvaccinated.case/ (n.unvaccinated.case + n.unvaccinated.control)
   rr <- risk.vax / risk.unvax
   cVE <- round((1- rr) *100,2)
   
@@ -29,7 +32,7 @@ makedata <- function(n.vaccinated.case=314, n.case=1983, n.vaccinated.control = 
   log.ve <- round((1-exp(mod.log$coefficients))*100,2)[2]
   
   log.ve.ci <- 1-(exp(confint(mod.log)))[2,]
-  log.ve.ci <- paste0("(", round(log.ve.ci[2]*100,3), " - ",round(log.ve.ci[1]*100,3), ")")
+  log.ve.ci <- paste0("(", round(log.ve.ci[2]*100,2), " - ",round(log.ve.ci[1]*100,2), ")")
   log.out <- paste(log.ve, log.ve.ci)
   
   
@@ -50,7 +53,7 @@ makedata <- function(n.vaccinated.case=314, n.case=1983, n.vaccinated.control = 
   
   mod.pois <- glm(covid ~ vaccine.status, family="poisson")
   mod.pois <- poisson.rev(mod.pois)[2,]
-  ve.pois <- (1-mod.pois)*100
+  ve.pois <-  round((1-mod.pois)*100,2)
   pois.out <- paste(ve.pois[1], paste0("(", ve.pois[3], " - ", ve.pois[2], ")"))
   
   mod.nb <- MASS::glm.nb(covid ~ vaccine.status)
@@ -61,6 +64,7 @@ makedata <- function(n.vaccinated.case=314, n.case=1983, n.vaccinated.control = 
   
   out <- data.frame(
     "Prevalence" = prevalence,
+    "Prevalence Unexposed" = prevalence.unexposed,
     "Actual VE" = cVE,
     "Logistic VE" = log.out,
     "Poisson VE" = pois.out,
@@ -79,18 +83,30 @@ makedata <- function(n.vaccinated.case=314, n.case=1983, n.vaccinated.control = 
     cols_align("center", columns = everything()) %>%
     
     cols_label(
-      Prevalence = md("**Prevalence of COVID-19 (%)**"),
-      Actual.VE = md("**VE, Actual (%)%**"),
-      Logistic.VE = md("**VE, Logistic (%)**"),
-      Poisson.VE = md("**VE, Poisson w/REV (%)%**"),
-      Negative.Binomial.VE = md("**VE, Neg Bin (%)**"),
+      Prevalence = md("**Prevalence of COVID-19**"),
+      Prevalence.Unexposed = md("**Prevalence of COVID-19 Among Unvaccinated**"),
+      Actual.VE = md("*Actual*"),
+      Logistic.VE = md("*Logistic*"),
+      Poisson.VE = md("*Poisson w/REV*"),
+      Negative.Binomial.VE = md("*Neg Bin*"),
     ) -> out.tab
+  
+  out.tab %>%
+    cols_width(
+      1 ~ px(110),
+      2 ~ px(110),
+      3 ~ px(90),
+      everything() ~ px(175)
+    ) %>%
+    tab_spanner(
+      label = md("**Vaccine Effectiveness Estimates, Regression**"),
+      columns = c(
+        3:6)
+    )-> out.tab
   
   
   return(list(df, out.tab))
 }
-
-
 
 
 
